@@ -311,5 +311,57 @@ document.getElementById('allNamesBtn').onclick=showNames;
 renderNodes(); renderLines(); selectNode('root'); fitAll();
 window.addEventListener('resize', fitAll);
 </script>
-</body>
+<style>
+#family-board{position:fixed;inset:0;background:#f4efe4;z-index:1000;overflow:auto;color:#253a2d;font-family:Segoe UI,Arial,sans-serif}
+#family-board *{box-sizing:border-box}
+.board-head{position:sticky;top:0;background:#f8f5ed;z-index:4;border-bottom:1px solid #d9c9a9;padding:15px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 2px 10px #0001}
+.board-head strong{font-size:22px;color:#214632}.board-head input{padding:12px;border-radius:12px;border:1px solid #b4ab98;min-width:230px;flex:1}
+.board-head button{background:#294934;color:white;border:0;border-radius:11px;padding:12px;cursor:pointer;font-size:14px}
+.board-roots{padding:22px;text-align:center;background:linear-gradient(#e7f0df,#f4efe4)}
+.board-roots h2{font-size:19px;margin:5px 0 13px}.board-root-cards{display:flex;justify-content:center;gap:15px;flex-wrap:wrap}
+.board-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;padding:20px;max-width:1760px;margin:auto}
+.board-branch{background:#fffcf7;border:1px solid #d1bd90;border-radius:20px;padding:20px;box-shadow:0 9px 24px #634e2915}
+.board-branch h2{font-size:20px;margin:0 0 12px;color:#284b36;border-bottom:2px solid #d0b783;padding-bottom:9px}
+.board-gen{margin:16px 0}.board-gen-label{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#8a744c;font-weight:800;margin-bottom:10px}
+.board-person-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.board-person{background:white;border:1px solid #d5c39b;border-radius:14px;padding:13px;min-height:95px;display:flex;align-items:start;gap:10px;cursor:pointer;text-align:left;width:100%;box-shadow:0 4px 10px #0000000b;color:#253528}
+.board-person:hover{border-color:#3b7855;background:#f4faf0}
+.board-avatar{height:42px;width:42px;flex:0 0 42px;border-radius:50%;background:#e0eadb;color:#30553c;display:grid;place-items:center;font-weight:800}
+.board-person b{font-size:15px;display:block;line-height:1.3;overflow-wrap:anywhere}.board-person small{font-size:12px;color:#806b47;display:block;margin-top:7px}
+.board-person.uncertain{border-style:dashed;background:#fff9f1}
+.board-detail{position:fixed;z-index:1002;right:14px;bottom:14px;max-width:420px;background:#fff;border-radius:16px;box-shadow:0 15px 40px #0004;padding:20px;border:1px solid #cfb888;display:none;max-height:65vh;overflow:auto}
+.board-detail button{float:right;border:0;background:#eee4d2;border-radius:8px;padding:6px 10px;cursor:pointer}
+@media(max-width:950px){.board-columns{grid-template-columns:1fr}.board-head strong{width:100%}}
+</style>
+<div id="family-board">
+ <div class="board-head"><strong>🌳 Мой род · Каждый родственник отдельно</strong><input id="board-search" placeholder="Поиск по ФИО, фамилии или году рождения"><button id="board-all">Показать все ветви</button><button id="board-layout">Классическая схема</button></div>
+ <div class="board-roots"><h2>Основатели семейного дерева</h2><div id="board-root-cards" class="board-root-cards"></div><p style="font-size:13px;color:#6d624d">Каждая карточка — отдельный человек. Ниже расположены восемь ветвей потомков.</p></div>
+ <main id="board-columns" class="board-columns"></main>
+</div>
+<div class="board-detail" id="board-detail"></div>
+<script>
+(function(){
+ const board=document.getElementById('family-board'),list=document.getElementById('board-columns'),roots=document.getElementById('board-root-cards'),search=document.getElementById('board-search');
+ const groups=['sarg_family','zoya_family','sveta_family','evg_family','galina_node','valya_family','matrena_node','evd_family'];
+ const adj={};for(const [a,b] of links){(adj[a]??=[]).push(b);}
+ const groupAliases=['Саргылан · Слепцовы','Зоя · Парниковы','Светлана · Тороховы','Евгений · Майоровы и Михайловы','Галина · Слепцовы','Валентина · Стручковы','Матрёна · Слепцовы','Евдокия · Садовниковы'];
+ function initials(s){return s.split(' ').slice(0,2).map(v=>v[0]).join('').toUpperCase();}
+ function onePerson(name,n){let date='';
+ for(const line of n.meta||[]){const a=line.toLowerCase(), tokens=name.toLowerCase().split(' ').filter(x=>x.length>3); if(tokens.some(t=>a.includes(t))){ const m=line.match(/(?:\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}|\d{1,2}\s+[а-яё]+\s+\d{4}|\b(?:19|20)\d{2}\b)/i);if(m)date=m[0];break;}}
+ return {name,date,source:n};
+ }
+ const data=groups.map((id,i)=>{const arr=[],visited=new Set(),seenPeople=new Set();function walk(nodeId,level){if(visited.has(nodeId))return;visited.add(nodeId);const n=nodeMap[nodeId];if(!n)return;for(const name of n.people||[]){if(seenPeople.has(name))continue;seenPeople.add(name);arr.push({...onePerson(name,n),level});}for(const child of adj[nodeId]||[]){if(child==='unc_albert')continue;walk(child,level+1);}}walk(id,0);return {id,label:groupAliases[i],arr};});
+ // Unresolved branch remains visible, but is not asserted to descend from a particular child.
+ const unassigned=[];for(const id of ['unc_albert','unc_albert_kids']){const n=nodeMap[id];if(n)for(const name of n.people||[])unassigned.push({...onePerson(name,n),level:id==='unc_albert'?0:1});}
+ data.push({id:'unresolved',label:'Связь с ветвью пока не подтверждена',arr:unassigned});
+ function card(p){const el=document.createElement('button');el.className='board-person'+(p.source.className?.includes('uncertain')?' uncertain':'');el.innerHTML='<span class="board-avatar"></span><span><b></b><small></small></span>';el.querySelector('.board-avatar').textContent=initials(p.name);el.querySelector('b').textContent=p.name;el.querySelector('small').textContent=p.date||'Дата уточняется';el.onclick=()=>{const box=document.getElementById('board-detail');box.style.display='block';box.innerHTML='<button id="bd-close">✕</button><h2 id="bd-name"></h2><p id="bd-date"></p><p id="bd-notes"></p>';box.querySelector('#bd-name').textContent=p.name;box.querySelector('#bd-date').textContent=p.date||'Дата рождения уточняется';box.querySelector('#bd-notes').textContent=p.source.note||'Данные из родословной CorelDRAW';box.querySelector('#bd-close').onclick=()=>box.style.display='none';};return el;}
+ function draw(q=''){roots.innerHTML='';list.innerHTML='';for(const name of nodeMap.root.people||[]) {const p=onePerson(name,nodeMap.root);if(!q||name.toLowerCase().includes(q))roots.appendChild(card(p));}
+ let count=0;for(const group of data){const people=group.arr.filter(p=>(p.name+' '+p.date).toLowerCase().includes(q));if(!people.length)continue;count+=people.length;const sec=document.createElement('section');sec.className='board-branch';const h=document.createElement('h2');h.textContent=group.label+' · '+people.length+' чел.';sec.appendChild(h);
+ const levels=[...new Set(people.map(p=>p.level))].sort((a,b)=>a-b);for(const level of levels){const layer=document.createElement('div');layer.className='board-gen';const label=document.createElement('div');label.className='board-gen-label';label.textContent=level===0?'Дети основателей и их семья': 'Поколение '+(level+1);layer.appendChild(label);const grid=document.createElement('div');grid.className='board-person-grid';people.filter(p=>p.level===level).forEach(p=>grid.appendChild(card(p)));layer.appendChild(grid);sec.appendChild(layer);}list.appendChild(sec);}
+ if(!count){const p=document.createElement('p');p.textContent='Совпадений не найдено';list.appendChild(p);}
+ }
+ search.addEventListener('input',()=>draw(search.value.trim().toLowerCase()));document.getElementById('board-all').onclick=()=>{search.value='';draw();window.scrollTo(0,0);};document.getElementById('board-layout').onclick=()=>{board.style.display='none';document.getElementById('board-detail').style.display='none';fitAll();};
+ draw();
+})();
+</script></body>
 </html>
