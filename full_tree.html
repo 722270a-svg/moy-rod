@@ -241,9 +241,26 @@ const panzoom = document.getElementById('panzoom');
 let scale = 0.8, tx = 20, ty = 10;
 function applyTransform(){ panzoom.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`; }
 function centerOnNode(id){ const n=nodeMap[id]; if(!n)return; const vw=viewport.clientWidth, vh=viewport.clientHeight; tx = vw/2 - (n.x+(n.w||220)/2)*scale; ty = vh/2 - (n.y+(n.h||80)/2)*scale; applyTransform(); }
-function fitAll(){ const vw=viewport.clientWidth-30, vh=viewport.clientHeight-30; scale=Math.min(vw/4700, vh/2650); tx=(viewport.clientWidth-4700*scale)/2; ty=(viewport.clientHeight-2650*scale)/2; applyTransform(); }
+function fitAll(){
+  activeBranch='all';
+  document.getElementById('branchSelect').value='all';
+  renderNodes(); renderLines();
+  const visible = [...nodesEl.querySelectorAll('.node')];
+  if (!visible.length) return;
+  const minX=Math.min(...visible.map(el=>el.offsetLeft));
+  const minY=Math.min(...visible.map(el=>el.offsetTop));
+  const maxX=Math.max(...visible.map(el=>el.offsetLeft+el.offsetWidth));
+  const maxY=Math.max(...visible.map(el=>el.offsetTop+el.offsetHeight));
+  const vw=viewport.clientWidth, vh=viewport.clientHeight;
+  const pad=36, w=maxX-minX, h=maxY-minY;
+  scale=Math.min((vw-2*pad)/w,(vh-2*pad)/h,1.5);
+  scale=Math.max(.04,scale);
+  tx=(vw-w*scale)/2-minX*scale;
+  ty=(vh-h*scale)/2-minY*scale;
+  applyTransform();
+}
 applyTransform();
-setTimeout(()=>centerOnNode("root"),30);
+setTimeout(fitAll,30);
 let isPanning=false, sx=0, sy=0, startTx=0, startTy=0;
 viewport.addEventListener('pointerdown', e=>{ isPanning=true; sx=e.clientX; sy=e.clientY; startTx=tx; startTy=ty; viewport.setPointerCapture(e.pointerId); });
 viewport.addEventListener('pointermove', e=>{ if(!isPanning)return; tx=startTx+(e.clientX-sx); ty=startTy+(e.clientY-sy); applyTransform(); });
@@ -254,12 +271,12 @@ viewport.addEventListener('wheel', e=>{
   const px=e.clientX-rect.left, py=e.clientY-rect.top;
   const wx=(px-tx)/scale, wy=(py-ty)/scale;
   const factor=e.deltaY<0?1.08:0.92;
-  scale=Math.max(0.28, Math.min(2.4, scale*factor));
+  scale=Math.max(0.04, Math.min(2.4, scale*factor));
   tx=px-wx*scale; ty=py-wy*scale; applyTransform();
 }, {passive:false});
 
 document.getElementById('zoomInBtn').onclick=()=>{ scale=Math.min(2.4, scale*1.1); applyTransform(); };
-document.getElementById('zoomOutBtn').onclick=()=>{ scale=Math.max(0.28, scale/1.1); applyTransform(); };
+document.getElementById('zoomOutBtn').onclick=()=>{ scale=Math.max(0.04, scale/1.1); applyTransform(); };
 document.getElementById('fitBtn').onclick=fitAll;
 document.getElementById('resetBtn').onclick=()=>{ document.getElementById('searchInput').value=''; document.querySelectorAll('.node').forEach(el=>el.classList.remove('highlight')); detailsBox.innerHTML='<h2>Выбери карточку</h2><div class="small">Поиск сброшен. Нажми на любую семью или человека.</div>'; };
 function search(){
@@ -291,8 +308,8 @@ function showNames(){
 }
 function escHTML(str){return String(str||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 document.getElementById('allNamesBtn').onclick=showNames;
-renderNodes(); renderLines(); selectNode('root'); centerOnNode("root");
-window.addEventListener('resize', ()=>centerOnNode(selected||"root"));
+renderNodes(); renderLines(); selectNode('root'); fitAll();
+window.addEventListener('resize', fitAll);
 </script>
 </body>
 </html>
