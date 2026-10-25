@@ -68,4 +68,15 @@ document.getElementById('lullSave').onclick=async()=>{const name=document.getEle
 showLulls();
 if(!treeW.dataset.ready){treeDraw();treeCatalog();treeW.dataset.ready='1';requestAnimationFrame(treeHome)}
 document.getElementById('treeFullScreen').onclick=()=>{window.open('full_tree.html','_blank','noopener')};
-</script></body></html>
+</script><script>
+/* Route the family-tree tab to the complete genealogy document. */
+document.addEventListener('click', function(event) {
+  const tab = event.target.closest('button[data-tab="tree"]');
+  if (tab) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    window.location.href = 'full_tree.html';
+  }
+}, true);
+</script>
+</body></html>
