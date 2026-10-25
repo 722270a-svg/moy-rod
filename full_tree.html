@@ -75,7 +75,7 @@
       <select class="branchSelect" id="branchSelect" aria-label="Выбрать ветвь"><option value="all">Все ветви</option><option value="Саргылан">Саргылан / Слепцовы</option><option value="Парников">Парниковы</option><option value="Торохов">Тороховы</option><option value="Евгений">Евгений / Майоровы / Михайловы</option><option value="Стручков">Стручковы</option><option value="Садовников">Садовниковы</option><option value="прочие">Остальные и спорные</option></select><button class="btn" id="sourcesBtn">Фото и источники</button><button class="btn" id="allNamesBtn">Все имена</button><input id="searchInput" placeholder="Найти человека или семью…"/>
       <button class="btn" id="searchBtn">Найти</button>
       <button class="btn" id="resetBtn">Сбросить поиск</button>
-      <button class="btn" id="fitBtn">Показать всё древо</button>
+      <button class="btn" id="backToCards" type="button" onclick="document.getElementById('family-board').style.display='block'">👥 Все родственники</button><button class="btn" id="fitBtn">Показать всё древо</button>
       <button class="btn" id="zoomInBtn">＋</button>
       <button class="btn" id="zoomOutBtn">－</button>
     </div>
@@ -334,7 +334,7 @@ window.addEventListener('resize', fitAll);
 @media(max-width:950px){.board-columns{grid-template-columns:1fr}.board-head strong{width:100%}}
 </style>
 <div id="family-board">
- <div class="board-head"><strong>🌳 Мой род · Каждый родственник отдельно</strong><input id="board-search" placeholder="Поиск по ФИО, фамилии или году рождения"><button id="board-all">Показать все ветви</button><button id="board-layout">Классическая схема</button></div>
+ <div class="board-head"><strong>🌳 Мой род · Каждый родственник отдельно</strong><input id="board-search" placeholder="Поиск по ФИО, фамилии или году рождения"><button id="board-all">Показать все ветви</button><button type="button" id="board-layout" onclick="document.getElementById('family-board').style.display='none'; document.getElementById('board-detail').style.display='none';">🌳 Вернуться к древу</button></div>
  <div class="board-roots"><h2>Основатели семейного дерева</h2><div id="board-root-cards" class="board-root-cards"></div><p style="font-size:13px;color:#6d624d">Каждая карточка — отдельный человек. Ниже расположены восемь ветвей потомков.</p></div>
  <main id="board-columns" class="board-columns"></main>
 </div>
@@ -360,7 +360,7 @@ window.addEventListener('resize', fitAll);
  const levels=[...new Set(people.map(p=>p.level))].sort((a,b)=>a-b);for(const level of levels){const layer=document.createElement('div');layer.className='board-gen';const label=document.createElement('div');label.className='board-gen-label';label.textContent=level===0?'Дети основателей и их семья': 'Поколение '+(level+1);layer.appendChild(label);const grid=document.createElement('div');grid.className='board-person-grid';people.filter(p=>p.level===level).forEach(p=>grid.appendChild(card(p)));layer.appendChild(grid);sec.appendChild(layer);}list.appendChild(sec);}
  if(!count){const p=document.createElement('p');p.textContent='Совпадений не найдено';list.appendChild(p);}
  }
- search.addEventListener('input',()=>draw(search.value.trim().toLowerCase()));document.getElementById('board-all').onclick=()=>{search.value='';draw();window.scrollTo(0,0);};document.getElementById('board-layout').onclick=()=>{board.style.display='none';document.getElementById('board-detail').style.display='none';fitAll();};
+ search.addEventListener('input',()=>draw(search.value.trim().toLowerCase()));document.getElementById('board-all').onclick=()=>{search.value='';draw();window.scrollTo(0,0);};document.getElementById('board-layout').addEventListener('click',()=>{board.style.display='none';document.getElementById('board-detail').style.display='none';});
  draw();
 })();
 </script></body>
